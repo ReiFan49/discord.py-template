@@ -4,6 +4,7 @@ import sys
 import yaml
 import asyncio
 import logging
+import argparse
 
 import discord
 from discord.utils import setup_logging, oauth_url
@@ -67,6 +68,14 @@ async def setup(bot):
 async def teardown(bot):
   pass
 
+async def setup_sync():
+  async with bot:
+    bot._connection.application_id = shared.config.cred.id
+    await bot.http.static_login(shared.config.cred.token)
+    await bot.tree.sync(guild=None)
+    for serverID in bot.tree._guild_commands.keys():
+      await bot.tree.sync(guild=serverID)
+
 @bot.event
 async def on_command_error(ctx, error):
   print(type(error).__name__, str(error))
@@ -74,7 +83,7 @@ async def on_command_error(ctx, error):
     return
   raise error
 
-if __name__ == '__main__':
+def mode_normal():
   print(
     "Invite:",
     oauth_url(
@@ -84,3 +93,22 @@ if __name__ == '__main__':
   )
 
   asyncio.run(main())
+
+def mode_quick_sync():
+  print('syncing commands...')
+  asyncio.run(setup_sync())
+
+def mode_selection():
+  result   = argparse.Namespace(
+    callback=mode_normal,
+  )
+  parser   = argparse.ArgumentParser()
+  parser.add_argument(
+    '--sync', action='store_const', const=mode_quick_sync, dest='callback',
+    help='updates bot slash command and exit',
+  )
+  parser.parse_args(namespace=result)
+  result.callback()
+
+if __name__ == '__main__':
+  mode_selection()
