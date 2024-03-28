@@ -21,3 +21,5 @@ class Credential:
 __all__ = (
   Config,
 )
+    self.users = data['users'] or []
+    self.users[:] = data['users'] or []
